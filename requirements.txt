@@ -1,3 +1,4 @@
+
 langchain
 torch
 accelerate
@@ -6,12 +7,9 @@ streamlit_chat
 streamlit
 faiss-cpu
 tiktoken
-ctransformers
+transformers
 huggingface-hub
 pypdf
 python-dotenv
 replicate
 docx2txt
-langchain
-transformers
-
