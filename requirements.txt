@@ -13,6 +13,5 @@ python-dotenv
 replicate
 docx2txt
 langchain
-langchain.embeddings
 transformers
 
