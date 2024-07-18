@@ -2,29 +2,32 @@ import streamlit as st
 from streamlit_chat import message
 from langchain.chains import ConversationalRetrievalChain
 from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.llms import Replicate
-from langchain.text_splitter import CharacterTextSplitter
 from langchain.vectorstores import FAISS
 from langchain.memory import ConversationBufferMemory
 from langchain.document_loaders import PyPDFLoader, TextLoader, Docx2txtLoader
+from langchain.text_splitter import CharacterTextSplitter
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from transformers import pipeline
 import os
-from dotenv import load_dotenv
 import tempfile
 
+# Load environment variables
+from dotenv import load_dotenv
 load_dotenv()
 
+# Set Streamlit page configuration
 st.set_page_config(
     page_title="SBA INFO SOLUTION",
     page_icon="sba_info_solutions_logo.jpg",  # You can add your icon here
     layout="wide",  # Wide layout similar to your second code snippet
 )
 
+# Main title and subtitle
 st.markdown('# :white[SBA INFO SOLUTION] ', unsafe_allow_html=True)
 st.markdown('## :white[Search Engine] ', unsafe_allow_html=True)
 
 
+# Initialize session state
 def initialize_session_state():
     if 'history' not in st.session_state:
         st.session_state['history'] = []
@@ -33,15 +36,17 @@ def initialize_session_state():
         st.session_state['generated'] = ["Hello! Ask me anything about"]
 
     if 'past' not in st.session_state:
-        st.session_state['past'] = [""]
+        st.session_state['past'] = []
 
 
+# Function to perform conversation chat
 def conversation_chat(query, chain, history):
     result = chain({"question": query, "chat_history": history})
     history.append((query, result["answer"]))
     return result["answer"]
 
 
+# Function to display chat history
 def display_chat_history():
     reply_container = st.container()
     container = st.container()
@@ -68,8 +73,8 @@ def display_chat_history():
                 message(st.session_state["generated"][i], key=str(i), avatar_style="fun-emoji")
 
 
+# Function to create conversational chain
 def create_conversational_chain(vector_store):
-    load_dotenv()
     llm = Replicate(
         streaming=True,
         model="replicate/llama-2-70b-chat:58d078176e02c219e11eb4da5a02a7830a283b14cf8f94537af893ccff5ee781",
@@ -84,6 +89,7 @@ def create_conversational_chain(vector_store):
     return chain
 
 
+# Function to perform summarization
 def perform_summarization(text_chunks):
     texts = [chunk.page_content for chunk in text_chunks]
     full_text = " ".join(texts)
@@ -91,21 +97,16 @@ def perform_summarization(text_chunks):
     return summary
 
 
-def perform_entity_extraction(text_chunks):
-    ner = pipeline("ner", grouped_entities=True)
-    texts = [chunk.page_content for chunk in text_chunks]
-    full_text = " ".join(texts)
-    entities = ner(full_text)
-    entity_list = [entity['word'] for entity in entities]
-    return ", ".join(set(entity_list))
-
-
+# Main function
 def main():
-    load_dotenv()
     initialize_session_state()
+
+    # Sidebar setup
     st.sidebar.image("sba_info_solutions_logo.jpg", width=200, use_column_width=False)
     st.sidebar.markdown("---")
     st.sidebar.title("Document Processing")
+
+    # File upload and processing
     uploaded_files = st.sidebar.file_uploader("Upload files", accept_multiple_files=True)
 
     if uploaded_files:
@@ -119,7 +120,7 @@ def main():
             loader = None
             if file_extension == ".pdf":
                 loader = PyPDFLoader(temp_file_path)
-            elif file_extension == ".docx" or file_extension == ".doc":
+            elif file_extension in (".docx", ".doc"):
                 loader = Docx2txtLoader(temp_file_path)
             elif file_extension == ".txt":
                 loader = TextLoader(temp_file_path)
@@ -128,6 +129,7 @@ def main():
                 text.extend(loader.load())
                 os.remove(temp_file_path)
 
+        # Text processing and embedding
         text_splitter = CharacterTextSplitter(separator="\n", chunk_size=1000, chunk_overlap=100, length_function=len)
         text_chunks = text_splitter.split_documents(text)
 
@@ -138,6 +140,7 @@ def main():
 
         st.session_state['chain'] = create_conversational_chain(vector_store)
 
+        # Task buttons in sidebar
         st.sidebar.header("Tasks")
         if st.sidebar.button("Summarization"):
             with st.spinner("Summarizing..."):
@@ -145,6 +148,8 @@ def main():
             st.session_state['past'].append("Summarization")
             st.session_state['generated'].append(result)
             display_chat_history()
+
+        # Commented out Entity Extraction due to potential issues
 
         # if st.sidebar.button("Entity Extraction"):
         #     with st.spinner("Extracting Entities..."):
