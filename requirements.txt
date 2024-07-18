@@ -12,4 +12,6 @@ pypdf
 python-dotenv
 replicate
 docx2txt
+langchain
+transformers
 
