@@ -10,15 +10,16 @@ from langchain.document_loaders import PyPDFLoader, TextLoader, Docx2txtLoader
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from transformers import pipeline
 import os
-from dotenv import load_dotenv
 import tempfile
 
-load_dotenv()
+# Set your API key directly here
+replicate_api_token = "r8_UhzTw7cHYcheIqhtxOOBKhRDtCOQ5YE3m1Lgd"
 
+# Set Streamlit configuration
 st.set_page_config(
     page_title="SBA INFO SOLUTION",
-    page_icon="sba_info_solutions_logo.jpg",  # You can add your icon here
-    layout="wide",  # Wide layout similar to your second code snippet
+    page_icon="sba_info_solutions_logo.jpg",
+    layout="wide"
 )
 
 st.markdown('# :white[SBA INFO SOLUTION] ', unsafe_allow_html=True)
@@ -69,12 +70,12 @@ def display_chat_history():
 
 
 def create_conversational_chain(vector_store):
-    load_dotenv()
     llm = Replicate(
         streaming=True,
         model="replicate/llama-2-70b-chat:58d078176e02c219e11eb4da5a02a7830a283b14cf8f94537af893ccff5ee781",
         callbacks=[StreamingStdOutCallbackHandler()],
-        input={"temperature": 0.01, "max_length": 500, "top_p": 1}
+        input={"temperature": 0.01, "max_length": 500, "top_p": 1},
+        api_token=replicate_api_token  # Pass the API token here
     )
     memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 
@@ -91,17 +92,7 @@ def perform_summarization(text_chunks):
     return summary
 
 
-def perform_entity_extraction(text_chunks):
-    ner = pipeline("ner", grouped_entities=True)
-    texts = [chunk.page_content for chunk in text_chunks]
-    full_text = " ".join(texts)
-    entities = ner(full_text)
-    entity_list = [entity['word'] for entity in entities]
-    return ", ".join(set(entity_list))
-
-
 def main():
-    load_dotenv()
     initialize_session_state()
     st.sidebar.image("sba_info_solutions_logo.jpg", width=200, use_column_width=False)
     st.sidebar.markdown("---")
@@ -146,16 +137,8 @@ def main():
             st.session_state['generated'].append(result)
             display_chat_history()
 
-        # if st.sidebar.button("Entity Extraction"):
-        #     with st.spinner("Extracting Entities..."):
-        #         result = perform_entity_extraction(text_chunks)
-        #     st.session_state['past'].append("Entity Extraction")
-        #     st.session_state['generated'].append(result)
-        #     display_chat_history()
-
         display_chat_history()
 
 
 if __name__ == "__main__":
     main()
-
